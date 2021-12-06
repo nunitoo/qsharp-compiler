@@ -38,6 +38,10 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="ProjectLoaderTests.cs" />
+  </ItemGroup>
+
   <Target Name="PublishQsFmt" BeforeTargets="BeforeCompile">
     <Message Importance="high" Text="Publishing QsFmt"/>
     <PropertyGroup>
