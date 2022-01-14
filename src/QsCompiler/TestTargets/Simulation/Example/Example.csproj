@@ -2,7 +2,7 @@
   <PropertyGroup>
     <QscVerbosity>Detailed</QscVerbosity>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <ExposeReferencesViaTestNames>true</ExposeReferencesViaTestNames>
     <IncludeQSharpCorePackages>false</IncludeQSharpCorePackages>
     <IncludeProviderPackages>false</IncludeProviderPackages>
@@ -17,7 +17,7 @@
   <PropertyGroup>
     <GeneratedFilesOutputPath>generated/</GeneratedFilesOutputPath>
     <ExecutionTestsDir>ExecutionTests/</ExecutionTestsDir>
-    <SimulationTarget>../Target/bin/$(Configuration)/net5.0/Simulation.dll</SimulationTarget>
+    <SimulationTarget>../Target/bin/$(Configuration)/netcoreapp3.1/Simulation.dll</SimulationTarget>
     <AdditionalQscArguments>--load $(SimulationTarget)</AdditionalQscArguments>
     <QscExe>dotnet "../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll"</QscExe>
   </PropertyGroup>
