@@ -29,7 +29,7 @@ function Test-One {
         -v $Env:BUILD_VERBOSITY `
         --blame `
         --logger trx `
-        --filter "FullyQualifiedName~Microsoft.Quantum.QsCompiler.Testing.LinkingTests" `
+        --filter "FullyQualifiedName~Microsoft.Quantum.QsCompiler.Testing.QirTests" `
         @args `
         /property:Version=$Env:ASSEMBLY_VERSION `
         /property:InformationalVersion=$Env:SEMVER_VERSION

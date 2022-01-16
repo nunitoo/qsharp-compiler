@@ -26,10 +26,10 @@ namespace Microsoft.Quantum.Testing.QIR
         {
             if (n%2 == 1) { K(q); }
         }
-        adjoint (...) // self, but have to define explicitly due to https://github.com/microsoft/qsharp-compiler/issues/781
-        {
-            if (n%2 == 1) { K(q); }
-        }
+        // adjoint (...) // self, but have to define explicitly due to https://github.com/microsoft/qsharp-compiler/issues/781
+        // {
+        //     if (n%2 == 1) { K(q); }
+        // }
         controlled (ctrls, ...)
         {
             if (n%2 == 1) { Controlled K(ctrls, q); }
