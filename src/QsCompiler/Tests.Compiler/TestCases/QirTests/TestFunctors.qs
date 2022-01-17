@@ -37,6 +37,19 @@ namespace Microsoft.Quantum.Testing.QIR
     }
 
     @EntryPoint()
+    operation DoesThisCrash() : Int {
+        use q0 = Qubit() {
+            if M(q0) == One { return -1; }
+            else {
+                use q1 = Qubit() {
+                    if M(q1) == One { return -2; }
+                }
+            }
+        }
+        return 0;
+    }
+
+    @EntryPoint()
     operation TestControlled () : Int
     {
         let qop = Qop(_, 1);
