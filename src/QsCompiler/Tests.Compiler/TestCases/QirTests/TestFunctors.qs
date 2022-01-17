@@ -26,10 +26,10 @@ namespace Microsoft.Quantum.Testing.QIR
         {
             if (n%2 == 1) { K(q); }
         }
-        adjoint (...) // self, but have to define explicitly due to https://github.com/microsoft/qsharp-compiler/issues/781
-        {
-            if (n%2 == 1) { K(q); }
-        }
+        // adjoint (...) // self, but have to define explicitly due to https://github.com/microsoft/qsharp-compiler/issues/781
+        // {
+        //     if (n%2 == 1) { K(q); }
+        // }
         controlled (ctrls, ...)
         {
             if (n%2 == 1) { Controlled K(ctrls, q); }
@@ -71,12 +71,13 @@ namespace Microsoft.Quantum.Testing.QIR
                                 if (M(q3) != Zero) { set error_code = 6; }
                                 else
                                 {
-                                    using (q4 = Qubit())
-                                    {
-                                        Adjoint qop(q3);
-                                        Adjoint Controlled ctl_ctl_qop([q1], ([q2], ([q3], q4)));
-                                        if (M(q4) != One) { set error_code = 7; }
-                                    }
+                                    if (q1 == q2) { set error_code = 7; }
+                                    // using (q4 = Qubit())
+                                    // {
+                                    //     Adjoint qop(q3);
+                                    //     Adjoint Controlled ctl_ctl_qop([q1], ([q2], ([q3], q4)));
+                                    //     if (M(q4) != One) { set error_code = 7; }
+                                    // }
                                 }
                             }
                         }
