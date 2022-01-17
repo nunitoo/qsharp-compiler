@@ -26,14 +26,30 @@ namespace Microsoft.Quantum.Testing.QIR
         {
             if (n%2 == 1) { K(q); }
         }
-        adjoint (...) // self, but have to define explicitly due to https://github.com/microsoft/qsharp-compiler/issues/781
-        {
-            if (n%2 == 1) { K(q); }
-        }
+        // adjoint (...) // self, but have to define explicitly due to https://github.com/microsoft/qsharp-compiler/issues/781
+        // {
+        //     if (n%2 == 1) { K(q); }
+        // }
         controlled (ctrls, ...)
         {
             if (n%2 == 1) { Controlled K(ctrls, q); }
         }
+    }
+
+    @EntryPoint()
+    operation DoesThisCrash() : Int {
+        use q0 = Qubit() {
+            if M(q0) == One { return -1; }
+            else {
+                if M(q0) == One { return -2; }
+                else {
+                    use q1 = Qubit() {
+                        if M(q1) == One { return -3; }
+                    }
+                }
+            }
+        }
+        return 0;
     }
 
     @EntryPoint()
@@ -46,7 +62,7 @@ namespace Microsoft.Quantum.Testing.QIR
         let ctl_ctl_qop = Controlled ctl_qop;
 
         mutable error_code = 0;
-        using ((q1, q2, q3) = (Qubit(), Qubit(), Qubit()))
+        using ((q1, q2, q3, q4) = (Qubit(), Qubit(), Qubit(), Qubit()))
         {
             qop(q1);
             if (M(q1) != One) { set error_code = 1; }
@@ -71,12 +87,12 @@ namespace Microsoft.Quantum.Testing.QIR
                                 if (M(q3) != Zero) { set error_code = 6; }
                                 else
                                 {
-                                    using (q4 = Qubit())
-                                    {
+                                    // using (q4 = Qubit())
+                                    // {
                                         Adjoint qop(q3);
                                         Adjoint Controlled ctl_ctl_qop([q1], ([q2], ([q3], q4)));
                                         if (M(q4) != One) { set error_code = 7; }
-                                    }
+                                    // }
                                 }
                             }
                         }
