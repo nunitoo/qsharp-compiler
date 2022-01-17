@@ -41,8 +41,11 @@ namespace Microsoft.Quantum.Testing.QIR
         use q0 = Qubit() {
             if M(q0) == One { return -1; }
             else {
-                use q1 = Qubit() {
-                    if M(q1) == One { return -2; }
+                if M(q0) == One { return -2; }
+                else {
+                    use q1 = Qubit() {
+                        if M(q1) == One { return -3; }
+                    }
                 }
             }
         }
