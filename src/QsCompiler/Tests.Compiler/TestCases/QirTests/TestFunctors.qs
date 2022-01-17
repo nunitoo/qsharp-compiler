@@ -38,29 +38,29 @@ namespace Microsoft.Quantum.Testing.QIR
 
     @EntryPoint()
     operation DoesThisCrash() : Int {
-        mutable error_code = 0;
+        // mutable error_code = 0;
         using ((q1, q2, q3) = (Qubit(), Qubit(), Qubit()))
         {
-            if (M(q1) != One) { set error_code = 1; }
+            if (M(q1) != One) { return 1; }
             else
             {
-                if (M(q2) != One) { set error_code = 2; }
+                if (M(q2) != One) { return 2; }
                 else{
-                    if (M(q3) != One) { set error_code = 3; }
+                    if (M(q3) != One) { return 3; }
                     else
                     {
-                        if (M(q3) != Zero) { set error_code = 4; }
+                        if (M(q3) != Zero) { return 4; }
                         else
                         {
-                            if (M(q3) != One) { set error_code = 5; }
+                            if (M(q3) != One) { return 5; }
                             else
                             {
-                                if (M(q3) != Zero) { set error_code = 6; }
+                                if (M(q3) != Zero) { return 6; }
                                 else
                                 {
                                     using (q4 = Qubit())
                                     {
-                                        if (M(q4) != One) { set error_code = 7; }
+                                        if (M(q4) != One) { return 7; }
                                     }
                                 }
                             }
@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.Testing.QIR
                 }
             }
         }
-        return error_code;
+        return 0;
     }
 
     @EntryPoint()
