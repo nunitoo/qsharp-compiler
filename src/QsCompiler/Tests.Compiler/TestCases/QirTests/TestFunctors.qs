@@ -38,18 +38,38 @@ namespace Microsoft.Quantum.Testing.QIR
 
     @EntryPoint()
     operation DoesThisCrash() : Int {
-        use q0 = Qubit() {
-            if M(q0) == One { return -1; }
-            else {
-                if M(q0) == One { return -2; }
-                else {
-                    use q1 = Qubit() {
-                        if M(q1) == One { return -3; }
+        mutable error_code = 0;
+        using ((q1, q2, q3) = (Qubit(), Qubit(), Qubit()))
+        {
+            if (M(q1) != One) { set error_code = 1; }
+            else
+            {
+                if (M(q2) != One) { set error_code = 2; }
+                else{
+                    if (M(q3) != One) { set error_code = 3; }
+                    else
+                    {
+                        if (M(q3) != Zero) { set error_code = 4; }
+                        else
+                        {
+                            if (M(q3) != One) { set error_code = 5; }
+                            else
+                            {
+                                if (M(q3) != Zero) { set error_code = 6; }
+                                else
+                                {
+                                    using (q4 = Qubit())
+                                    {
+                                        if (M(q4) != One) { set error_code = 7; }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
-        return 0;
+        return error_code;
     }
 
     @EntryPoint()
