@@ -20,11 +20,24 @@ let private _BaseTypes =
         "String", String
         "Result", Result
         "Qubit", Qubit
-        "Qubit[]", ResolvedType.New Qubit |> ArrayType
     |]
 
-let private _MakeTypeMap udts =
-    Array.concat [ _BaseTypes; udts ] |> Seq.map (fun (k, v) -> k, ResolvedType.New v) |> dict
+let private _MakeTypeParam originNs originName paramName =
+    originName + "." + paramName,
+    QsTypeParameter.New({ Namespace = originNs; Name = originName }, paramName) |> TypeParameter
+
+let private _MakeArrayType baseTypeName baseType =
+    baseTypeName + "[]", ResolvedType.New baseType |> ArrayType
+
+let private _MakeTupleType tupleItems =
+    let names, types = List.unzip tupleItems
+
+    names
+    |> String.concat ", "
+    |> fun x -> "(" + x + ")", types |> List.map ResolvedType.New |> fun x -> x.ToImmutableArray() |> TupleType
+
+let private _MakeTypeMap extraTypes =
+    Array.concat [ _BaseTypes; extraTypes ] |> Seq.map (fun (k, v) -> k, ResolvedType.New v) |> dict
 
 let private _DefaultTypes = _MakeTypeMap [||]
 
@@ -47,10 +60,6 @@ let private _MakeSig input (typeMap: IDictionary<string, ResolvedType>) =
 
 let private _MakeSignatures sigs =
     sigs |> Seq.map (fun (types, case) -> Seq.map (fun _sig -> _MakeSig _sig types) case) |> Seq.toArray
-
-let _MakeTypeParam originNs originName paramName =
-    originName + "." + paramName,
-    QsTypeParameter.New({ Namespace = originNs; Name = originName }, paramName) |> TypeParameter
 
 /// For all given namespaces in checkedNamespaces, checks that there are exactly
 /// the callables specified with targetSignatures in the given compilation.
@@ -124,10 +133,13 @@ let public MonomorphizationNS = "Microsoft.Quantum.Testing.Monomorphization"
 let public GenericsNS = "Microsoft.Quantum.Testing.Generics"
 let public IntrinsicResolutionNS = "Microsoft.Quantum.Testing.IntrinsicResolution"
 let public ClassicalControlNS = "Microsoft.Quantum.Testing.ClassicalControl"
+let public LambdaLiftingNS = "Microsoft.Quantum.Testing.LambdaLifting"
 let public InternalRenamingNS = "Microsoft.Quantum.Testing.InternalRenaming"
 let public CycleDetectionNS = "Microsoft.Quantum.Testing.CycleDetection"
 let public PopulateCallGraphNS = "Microsoft.Quantum.Testing.PopulateCallGraph"
 let public SyntaxTreeTrimmingNS = "Microsoft.Quantum.Testing.SyntaxTreeTrimming"
+
+let private _DefaultWithQubitArray = _MakeTypeMap [| _MakeArrayType "Qubit" Qubit |]
 
 /// Expected callable signatures to be found when running Monomorphization tests
 let public MonomorphizationSignatures =
@@ -163,7 +175,7 @@ let public MonomorphizationSignatures =
              GenericsNS, "GenericCallsGeneric", [| "Qubit"; "Int" |], "Unit"
          |])
         // Test Case 3
-        (_DefaultTypes,
+        (_DefaultWithQubitArray,
          [|
              MonomorphizationNS, "Test3", [||], "Unit"
              GenericsNS, "Test1Main", [||], "Unit"
@@ -605,6 +617,105 @@ let public ClassicalControlSignatures =
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
              ClassicalControlNS, "_Foo", [| "Int"; "Double"; "String"; "Double" |], "Unit"
+         |])
+    |]
+    |> _MakeSignatures
+
+let private _WithTupleTypes =
+    _MakeTypeMap [| _MakeTupleType [ "Double", Double
+                                     "String", String
+                                     "Result", Result ]
+                    _MakeTupleType [ "Double", Double
+                                     "String", String ]
+                    _MakeTupleType [ "Int", Int
+                                     "Double", Double ] |]
+
+/// Expected callable signatures to be found when running Lambda Lifting tests
+let public LambdaLiftingSignatures =
+    [| // Basic Lift
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Unit" |], "Int" // The generated operation
+         |])
+        // Without Return Value
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Unit" |], "Unit" // The generated operation
+         |])
+        // Call Valued Callable
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "Bar", [||], "Int"
+             LambdaLiftingNS, "_Foo", [| "Unit" |], "Int" // The generated operation
+         |])
+        // Call Unit Callable
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "Bar", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [| "Unit" |], "Unit" // The generated operation
+         |])
+        // Call Valued Callable Recursive
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Int" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Unit" |], "Int" // The generated operation
+         |])
+        // Call Unit Callable Recursive
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Unit" |], "Unit" // The generated operation
+         |])
+        // Use Closure
+        (_WithTupleTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Double"; "String"; "Result"; "Unit" |], "(Double, String, Result)" // The generated operation
+         |])
+        // Use Lots of Params
+        (_WithTupleTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Int" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "Int" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "Int"; "Double" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "Int"; "Double"; "String" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "Int"; "(Double, String)" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "Int"; "Double"; "String" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "(Int, Double)"; "String" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "Int"; "Double"; "String" |], "Unit"
+         |])
+        // Use Closure With Params
+        (_WithTupleTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Double"; "String"; "Result"; "Int" |], "(Double, String, Result)"
+             LambdaLiftingNS, "_Foo", [| "Double"; "String"; "Result"; "Int" |], "(Double, String, Result)"
+             LambdaLiftingNS, "_Foo", [| "Double"; "String"; "Result"; "Int"; "Double" |], "(Double, String, Result)"
+             LambdaLiftingNS,
+             "_Foo",
+             [| "Double"; "String"; "Result"; "Int"; "Double"; "String" |],
+             "(Double, String, Result)"
+             LambdaLiftingNS,
+             "_Foo",
+             [| "Double"; "String"; "Result"; "Int"; "(Double, String)" |],
+             "(Double, String, Result)"
+             LambdaLiftingNS,
+             "_Foo",
+             [| "Double"; "String"; "Result"; "Int"; "Double"; "String" |],
+             "(Double, String, Result)"
+             LambdaLiftingNS,
+             "_Foo",
+             [| "Double"; "String"; "Result"; "(Int, Double)"; "String" |],
+             "(Double, String, Result)"
+             LambdaLiftingNS,
+             "_Foo",
+             [| "Double"; "String"; "Result"; "Int"; "Double"; "String" |],
+             "(Double, String, Result)"
          |])
     |]
     |> _MakeSignatures
