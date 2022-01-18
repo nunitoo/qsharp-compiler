@@ -54,14 +54,14 @@ namespace Microsoft.Quantum.Testing.QIR
                             if (M(q3) != One) { return 5; }
                             else
                             {
-                                // if (M(q3) != Zero) { return 6; }
-                                // else
-                                // {
+                                if (M(q3) != Zero) { return 6; }
+                                else
+                                {
                                     using (q4 = Qubit())
                                     {
                                         if (M(q4) != One) { return 7; }
                                     }
-                                // }
+                                }
                             }
                         }
                     }

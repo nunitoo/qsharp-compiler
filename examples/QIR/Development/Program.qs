@@ -7,12 +7,32 @@
     open Microsoft.Quantum.Math;
 
     @EntryPoint()
-    operation RunExample() : String {
+    operation RunExample() : Int {
 
-        // Add additional code here
-        // for experimenting with and debugging QIR generation.
-
-        return "Executed successfully!";
+        use (q1, q2, q3) = (Qubit(), Qubit(), Qubit()) {
+            if (M(q1) != One) { return 1; }
+            else {
+                if (M(q2) != One) { return 2; }
+                else {
+                    if (M(q3) != One) { return 3; }
+                    else {
+                        if (M(q3) != Zero) { return 4; }
+                        else {
+                            if (M(q3) != One) { return 5; }
+                            else {
+                                if (M(q3) != Zero) { return 6; }
+                                else {
+                                    use q4 = Qubit() {
+                                        if (M(q4) != One) { return 7; }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return 0;
     }
 }
 

@@ -29,6 +29,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Quantum.LlvmBindings.Native" Version="13.0.0-CI-20220112-065039" PrivateAssets="All" GeneratePathProperty="true"/>
+    <None Include="$(PkgMicrosoft_Quantum_LlvmBindings_Native)\runtimes\**\*" PackagePath="runtimes">
+      <Link>runtimes\%(RecursiveDir)%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+      <Pack>true</Pack>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Compiler\Compiler.csproj" />
   </ItemGroup>
 
