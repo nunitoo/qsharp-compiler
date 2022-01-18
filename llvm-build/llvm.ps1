@@ -50,10 +50,16 @@ else {
 
 # Download the current tag of the llvm-project
 $llvmTag = Get-LlvmTag
-exec -wd $buildDir {
-    git clone --depth 1 -b $llvmTag --recurse-submodules --shallow-submodules https://github.com/llvm/llvm-project
+if ($IsMacOS) {
+    # For MacOS, use the Apple fork of llvm-project.
+    exec -wd $buildDir {
+        git clone --depth 1 -b 'stable/20211026' --recurse-submodules --shallow-submodules https://github.com/apple/llvm-project
+    }
+} else {
+    exec -wd $buildDir {
+        git clone --depth 1 -b $llvmTag --recurse-submodules --shallow-submodules https://github.com/llvm/llvm-project
+    }
 }
-
 Assert (![string]::IsNullOrWhiteSpace($Env:PKG_NAME)) "PKG_NAME is not set"
 
 Assert (Test-CommandExists "cmake") "CMAKE not found"
