@@ -106,12 +106,12 @@ namespace Microsoft.Quantum.Testing.QIR
                                 if (M(q3) != Zero) { set error_code = 6; }
                                 else
                                 {
-                                    // using (q4 = Qubit())
-                                    // {
+                                    using (q4 = Qubit())
+                                    {
                                         Adjoint qop(q3);
                                         Adjoint Controlled ctl_ctl_qop([q1], ([q2], ([q3], q4)));
                                         if (M(q4) != One) { set error_code = 7; }
-                                    // }
+                                    }
                                 }
                             }
                         }
