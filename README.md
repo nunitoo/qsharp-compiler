@@ -1,5 +1,6 @@
 # Microsoft Quantum Development Kit: <br>Q# Compiler and Language Server #
 <!-- this is a change from source -->
+<!-- a second change from source -->
 
 Welcome to the Microsoft Quantum Development Kit!
 
