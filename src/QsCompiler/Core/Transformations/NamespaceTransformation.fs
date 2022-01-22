@@ -3,7 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
-#nowarn "44" // OnSourceFile is deprecated.
+#nowarn "44" // OnArgumentName, OnItemName, and OnLocation are deprecated.
 
 open System
 open System.Collections.Immutable
@@ -25,7 +25,9 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     let Node = if options.Rebuild then Fold else Walk
 
     member val internal StatementTransformationHandle = missingTransformation "statement" with get, set
-    member this.Statements = this.StatementTransformationHandle()
+
+    member this.Statements : StatementTransformationBase = this.StatementTransformationHandle()
+    member this.Common : CommonTransformationItems = this.StatementTransformationHandle().Expressions.Common
 
     new(statementTransformation: unit -> StatementTransformationBase, options: TransformationOptions) as this =
         new NamespaceTransformationBase(options, "_internal_")
@@ -45,33 +47,25 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     // subconstructs used within declarations
 
+    // TODO: RELEASE 2022-09: Remove member.
+    [<Obsolete "Use SyntaxTreeTransformation.OnAbsoluteLocation instead">]
     abstract OnLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
-    default this.OnLocation l = l
+
+    default this.OnLocation l = this.Common.OnAbsoluteLocation l
 
     abstract OnDocumentation : ImmutableArray<string> -> ImmutableArray<string>
     default this.OnDocumentation doc = doc
 
-    // TODO: RELEASE 2021-07: Remove NamespaceTransformationBase.OnSourceFile.
-    [<Obsolete "Replaced by OnSource.">]
-    abstract OnSourceFile : string -> string
-
-    default this.OnSourceFile file = file
-
     abstract OnSource : Source -> Source
-
-    default this.OnSource source =
-        let file = Source.assemblyOrCodeFile source |> this.OnSourceFile
-
-        if file.EndsWith ".qs" then
-            { source with CodeFile = file }
-        else
-            { source with AssemblyFile = Value file }
+    default this.OnSource source = source
 
     abstract OnAttribute : QsDeclarationAttribute -> QsDeclarationAttribute
     default this.OnAttribute att = att
 
+    [<Obsolete "Use SyntaxTreeTransformation.OnItemNameDeclaration instead">]
     abstract OnItemName : string -> string
-    default this.OnItemName name = name
+
+    default this.OnItemName name = this.Common.OnItemNameDeclaration name
 
     abstract OnTypeItems : QsTuple<QsTypeItem> -> QsTuple<QsTypeItem>
 
@@ -92,11 +86,13 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             QsTupleItem << Named << LocalVariableDeclaration<_>.New info.IsMutable
             |> Node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
 
+    [<Obsolete "Use SyntaxTreeTransformation.OnLocalNameDeclaration or override OnArgumentTuple instead">]
     abstract OnArgumentName : QsLocalSymbol -> QsLocalSymbol
 
     default this.OnArgumentName arg =
         match arg with
-        | ValidName name -> ValidName |> Node.BuildOr arg (this.Statements.OnVariableName name)
+        | ValidName name ->
+            ValidName |> Node.BuildOr arg (this.Statements.Expressions.Common.OnLocalNameDeclaration name)
         | InvalidName -> arg
 
     abstract OnArgumentTuple : QsArgumentTuple -> QsArgumentTuple
@@ -108,7 +104,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             QsTuple |> Node.BuildOr original transformed
         | QsTupleItem item as original ->
             let loc = item.Position, item.Range
-            let name = this.OnArgumentName item.VariableName
+            let name = this.OnArgumentName item.VariableName // replace with the implementation once the deprecated member is removed
             let t = this.Statements.Expressions.Types.OnType item.Type
             let info = this.Statements.Expressions.OnExpressionInformation item.InferredInformation
 

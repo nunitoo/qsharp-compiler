@@ -567,8 +567,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         public UniqueVariableNames()
             : base(new TransformationState())
         {
-            this.Statements = new StatementTransformation(this);
-            this.StatementKinds = new StatementKindTransformation(this);
             this.ExpressionKinds = new ExpressionKindTransformation(this);
             this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
         }
@@ -579,33 +577,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         public static string StripUniqueName(string uniqueName) => Decorator.Undecorate(uniqueName) ?? uniqueName;
 
+        /* overrides */
+
+        public override string OnLocalNameDeclaration(string name) =>
+            this.SharedState.GenerateUniqueName(name);
+
+        public override string OnLocalName(string name) =>
+            this.SharedState.TryGetUniqueName(name, out var unique) ? unique : name;
+
         /* helper classes */
-
-        private class StatementTransformation : StatementTransformation<TransformationState>
-        {
-            public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent)
-            {
-            }
-
-            public override string OnVariableName(string name) =>
-                this.SharedState.TryGetUniqueName(name, out var unique) ? unique : name;
-        }
-
-        private class StatementKindTransformation : StatementKindTransformation<TransformationState>
-        {
-            public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent)
-            {
-            }
-
-            public override SymbolTuple OnSymbolTuple(SymbolTuple syms) =>
-                syms is SymbolTuple.VariableNameTuple tuple
-                    ? SymbolTuple.NewVariableNameTuple(tuple.Item.Select(this.OnSymbolTuple).ToImmutableArray())
-                    : syms is SymbolTuple.VariableName varName
-                    ? SymbolTuple.NewVariableName(this.SharedState.GenerateUniqueName(varName.Item))
-                    : syms;
-        }
 
         private class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>
         {
