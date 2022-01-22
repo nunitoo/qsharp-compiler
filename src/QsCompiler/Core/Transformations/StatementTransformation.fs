@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
+#nowarn "44" // OnLocation is deprecated.
+
 open System
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
@@ -19,19 +21,20 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
     let Node = if options.Rebuild then Fold else Walk
 
-    member val internal ExpressionTransformationHandle = missingTransformation "expression" with get, set
     member val internal StatementTransformationHandle = missingTransformation "statement" with get, set
 
-    member this.Expressions = this.ExpressionTransformationHandle()
-    member this.Statements = this.StatementTransformationHandle()
+    member this.Statements : StatementTransformationBase = this.StatementTransformationHandle()
+    member this.Expressions : ExpressionTransformationBase = this.StatementTransformationHandle().Expressions
+    member this.Common : CommonTransformationItems = this.StatementTransformationHandle().Expressions.Common
 
+    new(statementTransformation: unit -> StatementTransformationBase, options: TransformationOptions) as this =
+        new StatementKindTransformationBase(options, "_internal_")
+        then this.StatementTransformationHandle <- statementTransformation
+
+    [<Obsolete("Please use StatementKindTransformationBase(unit -> StatementTransformationBase, TransformationOptions) instead.")>]
     new(statementTransformation: unit -> StatementTransformationBase,
         expressionTransformation: unit -> ExpressionTransformationBase,
-        options: TransformationOptions) as this =
-        new StatementKindTransformationBase(options, "_internal_")
-        then
-            this.ExpressionTransformationHandle <- expressionTransformation
-            this.StatementTransformationHandle <- statementTransformation
+        options: TransformationOptions) = new StatementKindTransformationBase(statementTransformation, options)
 
     new(options: TransformationOptions) as this =
         new StatementKindTransformationBase(options, "_internal_")
@@ -39,26 +42,31 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
             let expressionTransformation = new ExpressionTransformationBase(options)
 
             let statementTransformation =
-                new StatementTransformationBase((fun _ -> this), (fun _ -> this.Expressions), options)
+                new StatementTransformationBase((fun _ -> this), (fun _ -> expressionTransformation), options)
 
-            this.ExpressionTransformationHandle <- fun _ -> expressionTransformation
             this.StatementTransformationHandle <- fun _ -> statementTransformation
 
+    new(statementTransformation: unit -> StatementTransformationBase) =
+        new StatementKindTransformationBase(statementTransformation, TransformationOptions.Default)
+
+    [<Obsolete("Please use StatementKindTransformationBase(unit -> StatementTransformationBase) instead.")>]
     new(statementTransformation: unit -> StatementTransformationBase,
         expressionTransformation: unit -> ExpressionTransformationBase) =
-        new StatementKindTransformationBase(
-            statementTransformation,
-            expressionTransformation,
-            TransformationOptions.Default
-        )
+        new StatementKindTransformationBase(statementTransformation, TransformationOptions.Default)
 
     new() = new StatementKindTransformationBase(TransformationOptions.Default)
-
 
     // subconstructs used within statements
 
     abstract OnSymbolTuple : SymbolTuple -> SymbolTuple
-    default this.OnSymbolTuple syms = syms
+
+    default this.OnSymbolTuple syms =
+        match syms with
+        | VariableNameTuple tuple ->
+            tuple |> Seq.map this.OnSymbolTuple |> ImmutableArray.CreateRange |> VariableNameTuple
+        | VariableName name -> this.Expressions.Common.OnLocalNameDeclaration name |> VariableName
+        | DiscardedItem
+        | InvalidItem -> syms
 
     abstract OnQubitInitializer : ResolvedInitializer -> ResolvedInitializer
 
@@ -248,8 +256,9 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
     member val internal ExpressionTransformationHandle = missingTransformation "expression" with get, set
     member val internal StatementKindTransformationHandle = missingTransformation "statement kind" with get, set
 
-    member this.Expressions = this.ExpressionTransformationHandle()
-    member this.StatementKinds = this.StatementKindTransformationHandle()
+    member this.StatementKinds : StatementKindTransformationBase = this.StatementKindTransformationHandle()
+    member this.Expressions : ExpressionTransformationBase = this.ExpressionTransformationHandle()
+    member this.Common : CommonTransformationItems = this.ExpressionTransformationHandle().Common
 
     new(statementKindTransformation: unit -> StatementKindTransformationBase,
         expressionTransformation: unit -> ExpressionTransformationBase,
@@ -263,10 +272,7 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
         new StatementTransformationBase(options, "_internal_")
         then
             let expressionTransformation = new ExpressionTransformationBase(options)
-
-            let statementTransformation =
-                new StatementKindTransformationBase((fun _ -> this), (fun _ -> this.Expressions), options)
-
+            let statementTransformation = new StatementKindTransformationBase((fun _ -> this), options)
             this.ExpressionTransformationHandle <- fun _ -> expressionTransformation
             this.StatementKindTransformationHandle <- fun _ -> statementTransformation
 
@@ -283,18 +289,25 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
 
     // supplementary statement information
 
+    // TODO: RELEASE 2022-09: Remove member.
+    [<Obsolete "Use SyntaxTreeTransformation.OnRelativeLocation instead">]
     abstract OnLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
-    default this.OnLocation loc = loc
 
+    default this.OnLocation loc = this.Common.OnRelativeLocation loc
+
+    // TODO: RELEASE 2022-09: Remove member.
+    [<Obsolete "Use ExpressionTransformationBase.OnLocalName instead">]
     abstract OnVariableName : string -> string
-    default this.OnVariableName name = name
+
+    default this.OnVariableName name =
+        this.Expressions.Common.OnLocalName name
 
     abstract OnLocalDeclarations : LocalDeclarations -> LocalDeclarations
 
     default this.OnLocalDeclarations decl =
         let onLocalVariableDeclaration (local: LocalVariableDeclaration<string>) =
             let loc = local.Position, local.Range
-            let name = this.OnVariableName local.VariableName
+            let name = this.Expressions.Common.OnLocalName local.VariableName
             let varType = this.Expressions.Types.OnType local.Type
             let info = this.Expressions.OnExpressionInformation local.InferredInformation
             LocalVariableDeclaration.New info.IsMutable (loc, name, varType, info.HasLocalQuantumDependency)
