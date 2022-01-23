@@ -27,7 +27,9 @@ function Test-One {
     dotnet test (Join-Path $PSScriptRoot $project) `
         -c $Env:BUILD_CONFIGURATION `
         -v $Env:BUILD_VERBOSITY `
+        --blame `
         --logger trx `
+        --filter "FullyQualifiedName~Microsoft.Quantum.QsCompiler.Testing.QirTests" `
         @args `
         /property:Version=$Env:ASSEMBLY_VERSION `
         /property:InformationalVersion=$Env:SEMVER_VERSION
@@ -41,7 +43,9 @@ function Test-One {
 
 Test-One '../QsCompiler.sln'
 Test-One '../src/Telemetry/Telemetry.sln'
-Test-One '../QsFmt.sln'
+if ($IsWindows) {
+    Test-One '../QsFmt.sln'
+}
 
 if (-not $all_ok) {
     throw "Running tests failed. Check the logs."
